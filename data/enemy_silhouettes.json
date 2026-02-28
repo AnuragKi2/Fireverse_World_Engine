@@ -1,0 +1,20 @@
+{
+  "_comment": "One hidden enemy silhouette per arc. Hints are subtle references that can be woven into scenes.",
+  "silhouettes": [
+    {
+      "silhouette_id": "silhouette_frost_wraith",
+      "arc_id": "arc_ice_lab",
+      "codename": "Frost Wraith",
+      "visual_markers": [
+        "needle-like horn profile",
+        "elongated left arm shadow",
+        "three-point back spines"
+      ],
+      "subtle_hint_rules": [
+        "Show silhouette only in reflections, steam, or distant security footage.",
+        "Keep exposure under 2 seconds per hint.",
+        "Avoid direct reveal until late arc episodes."
+      ]
+    }
+  ]
+}

@@ -1,18 +1,40 @@
 {
+  "_comment": "Arc registry. Each arc stores location type, hidden enemy silhouette ID, and episodes with exactly 3 main creatures.",
   "arcs": [
     {
-      "arc_id": "ember_fall",
-      "total_episodes": 10,
-      "completed_episodes": 0,
-      "current_progress_stage": "intro",
-      "escalation_level": 0.0
-    },
-    {
-      "arc_id": "skybreak_protocol",
-      "total_episodes": 8,
-      "completed_episodes": 2,
-      "current_progress_stage": "buildup",
-      "escalation_level": 0.33
+      "arc_id": "arc_ice_lab",
+      "name": "Cryo Containment Protocol",
+      "environment": "ice",
+      "lore_style": "cinematic sci-fi",
+      "hidden_enemy_silhouette_id": "silhouette_frost_wraith",
+      "creature_pool": [
+        "Glacier Howler",
+        "Shardback Manta",
+        "White Ember Hound",
+        "Crystalline Basilisk",
+        "Rime Stalker",
+        "Polar Rift Serpent",
+        "Frostcoil Lynx",
+        "Subzero Behemoth",
+        "Icicle Drake",
+        "Hollow Snow Leviathan",
+        "Coldflare Roc",
+        "Aurora Prowler",
+        "Permafrost Colossus",
+        "Shivertooth Cougar",
+        "Blizzard Crawler"
+      ],
+      "episodes": [
+        {
+          "episode_id": "ice_ep_01",
+          "title_seed": "Containment Breach at Sector-7",
+          "main_creatures": [
+            "Glacier Howler",
+            "Crystalline Basilisk",
+            "Rime Stalker"
+          ]
+        }
+      ]
     }
   ]
 }

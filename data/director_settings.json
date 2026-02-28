@@ -1,0 +1,8 @@
+{
+  "pacing_style": "cinematic",
+  "hook_intensity": "medium",
+  "mystery_level": "medium",
+  "chaos_scaling": true,
+  "warning_light_style": "default red cinematic",
+  "silhouette_visibility": "medium"
+}

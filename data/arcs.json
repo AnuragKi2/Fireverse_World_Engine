@@ -1,0 +1,18 @@
+{
+  "arcs": [
+    {
+      "arc_id": "ember_fall",
+      "total_episodes": 10,
+      "completed_episodes": 0,
+      "current_progress_stage": "intro",
+      "escalation_level": 0.0
+    },
+    {
+      "arc_id": "skybreak_protocol",
+      "total_episodes": 8,
+      "completed_episodes": 2,
+      "current_progress_stage": "buildup",
+      "escalation_level": 0.33
+    }
+  ]
+}

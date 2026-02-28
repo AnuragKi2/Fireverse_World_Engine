@@ -1,0 +1,41 @@
+{
+  "_comment": "Cross-arc continuity tracker. Update when creatures recur so the engine can maintain universe consistency.",
+  "creatures": [
+    {
+      "name": "Glacier Howler",
+      "first_arc": "arc_ice_lab",
+      "appearances": [
+        {
+          "arc_id": "arc_ice_lab",
+          "episode_id": "ice_ep_01",
+          "role": "main"
+        }
+      ],
+      "tags": ["agile", "frost", "pack-hunter"]
+    },
+    {
+      "name": "Crystalline Basilisk",
+      "first_arc": "arc_ice_lab",
+      "appearances": [
+        {
+          "arc_id": "arc_ice_lab",
+          "episode_id": "ice_ep_01",
+          "role": "main"
+        }
+      ],
+      "tags": ["armored", "refractive", "predator"]
+    },
+    {
+      "name": "Rime Stalker",
+      "first_arc": "arc_ice_lab",
+      "appearances": [
+        {
+          "arc_id": "arc_ice_lab",
+          "episode_id": "ice_ep_01",
+          "role": "main"
+        }
+      ],
+      "tags": ["stealth", "frost", "ambush"]
+    }
+  ]
+}

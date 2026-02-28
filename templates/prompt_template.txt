@@ -1,0 +1,8 @@
+# Prompt Template
+# Purpose: Safe baseline prompts for image/video generation.
+
+[IMAGE_PROMPT]
+Cinematic frame of a {creature_descriptor} creature in a {environment_descriptor} containment setting, dramatic volumetric lighting, PG-13 tone, high detail, no gore.
+
+[VIDEO_PROMPT]
+10-second cinematic shot of the {creature_descriptor} creature moving through {environment_descriptor}, subtle tension, dynamic camera movement, clean storytelling visuals, no graphic violence.

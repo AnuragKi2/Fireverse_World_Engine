@@ -1,238 +1,152 @@
-import argparse
+"""Fireverse_World_Engine starter orchestrator.
+
+This script demonstrates the initial architecture for generating episode packages
+for cinematic creature containment stories.
+
+What this file does:
+1. Loads structured world data from /data JSON files.
+2. Validates core world rules (e.g., 3 main creatures, one silhouette per arc).
+3. Builds a starter episode output dictionary with required fields:
+   - Viral title
+   - Thumbnail concept
+   - 6-scene plan (10 seconds each)
+   - Safe image prompts (contains the word "creature")
+   - Video prompts
+   - Narration lines
+4. Prints a readable sample payload for extension into future pipelines.
+"""
+
+from __future__ import annotations
+
 import json
-import os
-import random
-import hashlib
-from textwrap import dedent
-
-# Default arc data used when no matching JSON file exists.
-DEFAULT_ARCS = {
-    "emberfall": {
-        "world": "a volcanic island chain where storms are alive",
-        "tone": "urgent mystery",
-        "creatures": [
-            "flare creature",
-            "ashwing creature",
-            "obsidian crawler creature",
-            "stormfin creature",
-            "emberhorn creature",
-            "magma veil creature",
-        ],
-        "objectives": [
-            "find the source of the red lightning",
-            "protect the sky-port before dawn",
-            "recover the fractured ember core",
-        ],
-        "enemy_hint": "a giant horned creature shape",
-    },
-    "tideveil": {
-        "world": "flooded ruins beneath glowing moonwater",
-        "tone": "haunting adventure",
-        "creatures": [
-            "reef strider creature",
-            "mistscale creature",
-            "lumen eel creature",
-            "tideglass creature",
-            "depth stalker creature",
-            "pearlback creature",
-        ],
-        "objectives": [
-            "decode the drowned signal",
-            "seal the broken moon gate",
-            "rescue the drifting city scouts",
-        ],
-        "enemy_hint": "a many-eyed creature silhouette",
-    },
-}
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 
-def load_arc_data(arc_name: str) -> dict:
-    """Load arc data from arcs/{arc_name}.json if present, else use defaults."""
-    # Normalize arc name so lookups are consistent.
-    arc_key = arc_name.strip().lower()
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+TEMPLATE_DIR = BASE_DIR / "templates"
 
-    # Try loading a custom arc file first.
-    arc_path = os.path.join("arcs", f"{arc_key}.json")
-    if os.path.exists(arc_path):
-        with open(arc_path, "r", encoding="utf-8") as f:
-            return json.load(f)
 
-    # Fall back to built-in data if no file exists.
-    if arc_key in DEFAULT_ARCS:
-        return DEFAULT_ARCS[arc_key]
+@dataclass
+class EngineData:
+    """Container for loaded world data files."""
 
-    # Last-resort generic arc so generation still works.
+    arcs: dict[str, Any]
+    creature_tracker: dict[str, Any]
+    enemy_silhouettes: dict[str, Any]
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    """Load a JSON file into a Python dictionary."""
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_engine_data() -> EngineData:
+    """Load all required data files from /data."""
+    return EngineData(
+        arcs=load_json(DATA_DIR / "arcs.json"),
+        creature_tracker=load_json(DATA_DIR / "creature_tracker.json"),
+        enemy_silhouettes=load_json(DATA_DIR / "enemy_silhouettes.json"),
+    )
+
+
+def validate_world_rules(data: EngineData) -> None:
+    """Validate core constraints defined by the Fireverse world rules.
+
+    Raises:
+        ValueError: If any rule is violated.
+    """
+    silhouettes_by_arc = {
+        entry["arc_id"]: entry for entry in data.enemy_silhouettes.get("silhouettes", [])
+    }
+
+    for arc in data.arcs.get("arcs", []):
+        arc_id = arc["arc_id"]
+
+        # Rule: each arc should map to exactly one hidden enemy silhouette.
+        if arc_id not in silhouettes_by_arc:
+            raise ValueError(f"Arc '{arc_id}' has no silhouette definition.")
+
+        # Rule: each arc should maintain about 15-20 creatures.
+        pool_size = len(arc.get("creature_pool", []))
+        if not 15 <= pool_size <= 20:
+            raise ValueError(
+                f"Arc '{arc_id}' creature_pool size must be 15-20; got {pool_size}."
+            )
+
+        # Rule: each episode contains exactly 3 main creatures.
+        for episode in arc.get("episodes", []):
+            mains = episode.get("main_creatures", [])
+            if len(mains) != 3:
+                raise ValueError(
+                    f"Episode '{episode.get('episode_id')}' must have 3 main creatures."
+                )
+
+
+def build_episode_output(arc: dict[str, Any], episode: dict[str, Any]) -> dict[str, Any]:
+    """Build a starter episode payload matching output requirements.
+
+    Note:
+        This is intentionally template-based placeholder logic for iteration.
+    """
+    main_creatures = episode["main_creatures"]
+
+    scenes = []
+    for i in range(1, 7):
+        start_second = (i - 1) * 10
+        end_second = i * 10
+        scenes.append(
+            {
+                "scene_number": i,
+                "time_window": f"00:{start_second:02d}-00:{end_second:02d}",
+                "focus_creature": main_creatures[(i - 1) % 3],
+                "objective": f"Escalate containment tension in scene {i}.",
+            }
+        )
+
+    safe_image_prompts = [
+        f"Cinematic shot of a {name} creature in a {arc['environment']} containment lab, dramatic lighting, no gore."
+        for name in main_creatures
+    ]
+
+    video_prompts = [
+        f"10-second sequence featuring the {name} creature navigating security corridors in the {arc['environment']} arc setting."
+        for name in main_creatures
+    ]
+
+    narration_lines = [
+        f"Scene {scene['scene_number']}: The {scene['focus_creature']} creature tests the limits of containment."
+        for scene in scenes
+    ]
+
     return {
-        "world": "an unstable frontier where strange energy leaks into every biome",
-        "tone": "cinematic suspense",
-        "creatures": [
-            "shadow crest creature",
-            "ion drifter creature",
-            "crystal mane creature",
-            "dusk burrower creature",
-            "rift glider creature",
-            "aurora shell creature",
-        ],
-        "objectives": [
-            "trace the source of the anomaly",
-            "stabilize the failing beacon",
-            "escort the explorers to safety",
-        ],
-        "enemy_hint": "an unknown titan creature silhouette",
+        "arc_id": arc["arc_id"],
+        "episode_id": episode["episode_id"],
+        "viral_title": f"{episode['title_seed']} | 3 Creature Lockdown Goes Wrong",
+        "thumbnail_concept": (
+            "Split-frame: three featured creatures in alarm-lit chambers, with a faint"
+            " hidden silhouette reflected in frosted glass."
+        ),
+        "scene_plan": scenes,
+        "safe_image_prompts": safe_image_prompts,
+        "video_prompts": video_prompts,
+        "narration_lines": narration_lines,
     }
 
 
-def select_main_creatures(arc_data: dict, seed_value: int) -> list:
-    """Select 2-3 core creatures that will lead this episode."""
-    # Use a seeded random generator so the same episode is reproducible.
-    rng = random.Random(seed_value)
-    available = arc_data.get("creatures", [])
-
-    # Always return at least two creatures when possible.
-    if len(available) >= 3:
-        return rng.sample(available, k=3)
-    if len(available) == 2:
-        return available[:]
-    if len(available) == 1:
-        return [available[0], available[0]]
-    return ["frontier creature", "guardian creature"]
-
-
-def build_title_and_thumbnail(arc_name: str, episode_number: int, arc_data: dict, creatures: list) -> tuple:
-    """Generate an episode title and thumbnail concept line."""
-    # Build a dramatic title from arc, episode number, and objective.
-    objective = arc_data.get("objectives", ["survive the incoming storm"])[0]
-    title = f"{arc_name.title()} Episode {episode_number}: {objective.title()}"
-
-    # Keep the thumbnail concept concise for production handoff.
-    thumbnail = (
-        f"Wide cinematic shot in {arc_data.get('world', 'a wild frontier')}, "
-        f"{creatures[0]} in foreground, {creatures[1]} mid-action, "
-        f"red energy crack in sky, bold text '{arc_name.upper()} #{episode_number}'."
-    )
-    return title, thumbnail
-
-
-def build_scene_blueprints(arc_data: dict, creatures: list) -> list:
-    """Create the 6 locked scene beats with 10-second intent each."""
-    world = arc_data.get("world", "an unstable wilderness")
-    objective = random.choice(arc_data.get("objectives", ["stop the anomaly"]))
-    enemy_hint = arc_data.get("enemy_hint", "an unknown creature silhouette")
-
-    # Locked scene structure requested by spec.
-    return [
-        ("strong hook", f"A sudden shockwave splits the horizon in {world} as {creatures[0]} sprints toward danger."),
-        ("developing tension", f"The team tracks unstable signs while {creatures[1]} senses a hidden trap tied to {objective}."),
-        ("energy escalation", f"Crackling light erupts around {creatures[2]} and the ground starts pulsing like a heartbeat."),
-        ("disturbance event", f"A violent rupture opens, throwing debris and separating allies across a collapsing path."),
-        ("near chaos", f"All creatures scramble as storms, fire, and falling ruins collide in a near-total breakdown."),
-        ("cliffhanger with enemy silhouette hint", f"In smoke and lightning, only the outline of {enemy_hint} appears before total blackout."),
-    ]
-
-
-def build_narration_line(scene_index: int, beat_name: str, description: str, tone: str) -> str:
-    """Create a short narrator line that matches scene tone and beat."""
-    return (
-        f"Scene {scene_index} narration ({beat_name}, {tone}): "
-        f"{description} This is only the beginning."
-    )
-
-
-def build_safe_image_prompt(scene_index: int, description: str) -> str:
-    """Create safe image prompts and always use the word 'creature'."""
-    # Explicitly include "creature" for safety requirement.
-    return (
-        f"Scene {scene_index} image prompt: cinematic fantasy environment, creature-focused action, "
-        f"{description}, dynamic lighting, high detail, no gore, family-safe"
-    )
-
-
-def build_video_prompt(scene_index: int, beat_name: str, description: str) -> str:
-    """Create video generation prompts with motion and camera guidance."""
-    return (
-        f"Scene {scene_index} video prompt (10s): {beat_name}; {description}; "
-        f"camera: sweeping dolly + quick push-in; pacing: escalating; style: cinematic adventure"
-    )
-
-
-def generate_episode(arc_name: str, episode_number: int) -> str:
-    """
-    Generate a full, production-ready episode package and save it to /output.
-
-    Required flow:
-    1) load arc data
-    2) select main creatures
-    3) generate title and thumbnail concept
-    4) create 6 scenes (10 seconds each)
-    5) generate narration lines
-    6) generate safe image prompts using 'creature'
-    7) generate video prompts
-    """
-    # Make generation deterministic for the same arc + episode.
-    seed_input = f"{arc_name.lower()}::{episode_number}"
-    seed_value = int(hashlib.sha256(seed_input.encode("utf-8")).hexdigest()[:8], 16)
-
-    # 1) Load arc data.
-    arc_data = load_arc_data(arc_name)
-
-    # 2) Select main creatures.
-    main_creatures = select_main_creatures(arc_data, seed_value)
-
-    # 3) Build title and thumbnail concept.
-    title, thumbnail = build_title_and_thumbnail(arc_name, episode_number, arc_data, main_creatures)
-
-    # 4) Build 6 locked scenes.
-    scenes = build_scene_blueprints(arc_data, main_creatures)
-
-    # 5-7) Build narration + image + video prompts for each scene.
-    tone = arc_data.get("tone", "cinematic suspense")
-    scene_blocks = []
-    for idx, (beat_name, description) in enumerate(scenes, start=1):
-        narration = build_narration_line(idx, beat_name, description, tone)
-        image_prompt = build_safe_image_prompt(idx, description)
-        video_prompt = build_video_prompt(idx, beat_name, description)
-        scene_blocks.append(
-            dedent(
-                f"""
-                --- Scene {idx} (10s) ---
-                Beat: {beat_name}
-                Scene Description: {description}
-                Narration: {narration}
-                Image Prompt: {image_prompt}
-                Video Prompt: {video_prompt}
-                """
-            ).strip()
-        )
-
-    # Assemble clean production-ready text.
-    scenes_text = "\n\n".join(scene_blocks)
-    header_lines = [
-        f"ARC: {arc_name}",
-        f"EPISODE: {episode_number}",
-        f"TITLE: {title}",
-        f"THUMBNAIL CONCEPT: {thumbnail}",
-        f"MAIN CREATURES: {', ' .join(main_creatures)}",
-        "",
-    ]
-    episode_text = "\n".join(header_lines) + scenes_text + "\n"
-    # Save to the requested absolute output pattern.
-    os.makedirs("/output", exist_ok=True)
-    out_path = f"/output/arc_{arc_name}_episode_{episode_number}.txt"
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(episode_text)
-
-    return out_path
-
-
 def main() -> None:
-    """CLI entrypoint for one-command episode generation."""
-    parser = argparse.ArgumentParser(description="Generate a Fireverse episode package.")
-    parser.add_argument("arc_name", help="Arc name, for example: emberfall")
-    parser.add_argument("episode_number", type=int, help="Episode number, for example: 1")
-    args = parser.parse_args()
+    """Run starter engine flow and print one sample episode output."""
+    data = load_engine_data()
+    validate_world_rules(data)
 
-    output_path = generate_episode(args.arc_name, args.episode_number)
-    print(f"Episode generated: {output_path}")
+    first_arc = data.arcs["arcs"][0]
+    first_episode = first_arc["episodes"][0]
+    result = build_episode_output(first_arc, first_episode)
+
+    print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

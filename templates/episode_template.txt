@@ -1,0 +1,28 @@
+# Episode Output Template
+# Purpose: Defines the required final output package for each generated episode.
+
+[EPISODE_META]
+Arc ID: {arc_id}
+Episode ID: {episode_id}
+Episode Theme: {episode_theme}
+Main Creatures: {main_creatures}
+
+[VIRAL_TITLE]
+{viral_title}
+
+[THUMBNAIL_CONCEPT]
+{thumbnail_concept}
+
+[SCENE_PLAN]
+# Must include exactly 6 scenes, each 10 seconds.
+{scene_blocks}
+
+[SAFE_IMAGE_PROMPTS]
+# Prompts must use the word "creature" and avoid graphic harm.
+{safe_image_prompts}
+
+[VIDEO_PROMPTS]
+{video_prompts}
+
+[NARRATION_LINES]
+{narration_lines}

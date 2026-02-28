@@ -27,6 +27,7 @@ from typing import Any
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 TEMPLATE_DIR = BASE_DIR / "templates"
+OUTPUT_DIR = BASE_DIR / "outputs"
 
 
 @dataclass
@@ -135,6 +136,62 @@ def build_episode_output(arc: dict[str, Any], episode: dict[str, Any]) -> dict[s
         "video_prompts": video_prompts,
         "narration_lines": narration_lines,
     }
+
+
+def generate_episode(title_seed: str, episode_number: int) -> dict[str, Any]:
+    """Generate an episode output by title/number and persist it to disk.
+
+    Args:
+        title_seed: Episode title seed to use for the generated payload.
+        episode_number: 1-indexed episode position.
+
+    Returns:
+        Generated episode payload.
+
+    Raises:
+        ValueError: If the episode number is invalid or there is no arc data.
+    """
+    data = load_engine_data()
+    validate_world_rules(data)
+
+    arcs = data.arcs.get("arcs", [])
+    if not arcs:
+        raise ValueError("No arcs available in data/arcs.json")
+
+    arc = arcs[0]
+    episodes = arc.get("episodes", [])
+    if episode_number < 1:
+        raise ValueError("episode_number must be >= 1")
+
+    # Reuse matching episode if it exists, otherwise synthesize from first arc pool.
+    episode = next((e for e in episodes if e.get("title_seed") == title_seed), None)
+    if episode is None:
+        if episode_number <= len(episodes):
+            base = episodes[episode_number - 1]
+            episode = {
+                "episode_id": f"{arc['arc_id']}_ep_{episode_number:02d}",
+                "title_seed": title_seed,
+                "main_creatures": base["main_creatures"],
+            }
+        else:
+            pool = arc.get("creature_pool", [])
+            if len(pool) < 3:
+                raise ValueError("Arc creature_pool must include at least 3 creatures")
+            start = (episode_number - 1) % len(pool)
+            mains = [pool[(start + i) % len(pool)] for i in range(3)]
+            episode = {
+                "episode_id": f"{arc['arc_id']}_ep_{episode_number:02d}",
+                "title_seed": title_seed,
+                "main_creatures": mains,
+            }
+
+    result = build_episode_output(arc, episode)
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / f"episode_{episode_number:02d}.json"
+    output_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    result["output_file"] = str(output_path)
+    return result
 
 
 def main() -> None:

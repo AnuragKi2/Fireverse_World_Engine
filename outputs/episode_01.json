@@ -1,0 +1,62 @@
+{
+  "arc_id": "arc_ice_lab",
+  "episode_id": "arc_ice_lab_ep_01",
+  "viral_title": "Electric Incident | 3 Creature Lockdown Goes Wrong",
+  "thumbnail_concept": "Split-frame: three featured creatures in alarm-lit chambers, with a faint hidden silhouette reflected in frosted glass.",
+  "scene_plan": [
+    {
+      "scene_number": 1,
+      "time_window": "00:00-00:10",
+      "focus_creature": "Glacier Howler",
+      "objective": "Escalate containment tension in scene 1."
+    },
+    {
+      "scene_number": 2,
+      "time_window": "00:10-00:20",
+      "focus_creature": "Crystalline Basilisk",
+      "objective": "Escalate containment tension in scene 2."
+    },
+    {
+      "scene_number": 3,
+      "time_window": "00:20-00:30",
+      "focus_creature": "Rime Stalker",
+      "objective": "Escalate containment tension in scene 3."
+    },
+    {
+      "scene_number": 4,
+      "time_window": "00:30-00:40",
+      "focus_creature": "Glacier Howler",
+      "objective": "Escalate containment tension in scene 4."
+    },
+    {
+      "scene_number": 5,
+      "time_window": "00:40-00:50",
+      "focus_creature": "Crystalline Basilisk",
+      "objective": "Escalate containment tension in scene 5."
+    },
+    {
+      "scene_number": 6,
+      "time_window": "00:50-00:60",
+      "focus_creature": "Rime Stalker",
+      "objective": "Escalate containment tension in scene 6."
+    }
+  ],
+  "safe_image_prompts": [
+    "Cinematic shot of a Glacier Howler creature in a ice containment lab, dramatic lighting, no gore.",
+    "Cinematic shot of a Crystalline Basilisk creature in a ice containment lab, dramatic lighting, no gore.",
+    "Cinematic shot of a Rime Stalker creature in a ice containment lab, dramatic lighting, no gore."
+  ],
+  "video_prompts": [
+    "10-second sequence featuring the Glacier Howler creature navigating security corridors in the ice arc setting.",
+    "10-second sequence featuring the Crystalline Basilisk creature navigating security corridors in the ice arc setting.",
+    "10-second sequence featuring the Rime Stalker creature navigating security corridors in the ice arc setting."
+  ],
+  "narration_lines": [
+    "Scene 1: The Glacier Howler creature tests the limits of containment.",
+    "Scene 2: The Crystalline Basilisk creature tests the limits of containment.",
+    "Scene 3: The Rime Stalker creature tests the limits of containment.",
+    "Scene 4: The Glacier Howler creature tests the limits of containment.",
+    "Scene 5: The Crystalline Basilisk creature tests the limits of containment.",
+    "Scene 6: The Rime Stalker creature tests the limits of containment."
+  ]
+}

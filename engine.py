@@ -1,215 +1,153 @@
-"""Core world-intelligence utilities for Fireverse World Engine.
+"""Fireverse_World_Engine starter orchestrator.
 
-This module only builds the reusable data and memory logic.
-It does not generate full episodes.
+This script demonstrates the initial architecture for generating episode packages
+for cinematic creature containment stories.
+
+What this file does:
+1. Loads structured world data from /data JSON files.
+2. Validates core world rules (e.g., 3 main creatures, one silhouette per arc).
+3. Builds a starter episode output dictionary with required fields:
+   - Viral title
+   - Thumbnail concept
+   - 6-scene plan (10 seconds each)
+   - Safe image prompts (contains the word "creature")
+   - Video prompts
+   - Narration lines
+4. Prints a readable sample payload for extension into future pipelines.
 """
 
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
-
-# Paths for persistent world-memory files.
-ARCS_PATH = Path("arcs.json")
-CREATURE_TRACKER_PATH = Path("creature_tracker.json")
-ENEMY_SILHOUETTES_PATH = Path("enemy_silhouettes.json")
+from typing import Any
 
 
-def _load_json(path: Path, default: Any) -> Any:
-    """Load JSON from disk and return a default value when missing or invalid."""
-    if not path.exists():
-        return default
-
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return default
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+TEMPLATE_DIR = BASE_DIR / "templates"
 
 
-def _save_json(path: Path, data: Any) -> None:
-    """Save JSON to disk with readable formatting for long-term memory files."""
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+@dataclass
+class EngineData:
+    """Container for loaded world data files."""
+
+    arcs: dict[str, Any]
+    creature_tracker: dict[str, Any]
+    enemy_silhouettes: dict[str, Any]
 
 
-def load_arc_data() -> List[Dict[str, Any]]:
-    """Load arc definitions used to guide episode intelligence.
-
-    Expected schema for each arc in arcs.json:
-      - arc_name
-      - environment_type
-      - tone
-      - enemy_silhouette
-      - episode_count
-    """
-    return _load_json(ARCS_PATH, default=[])
+def load_json(path: Path) -> dict[str, Any]:
+    """Load a JSON file into a Python dictionary."""
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
 
-def get_episode_creatures(
-    available_creatures: List[str],
-    episode_number: int,
-    recent_main_window: int = 3,
-) -> Dict[str, Any]:
-    """Select main and background creatures while reducing repeated main usage.
-
-    The function reads creature_tracker.json and avoids assigning the same creature
-    as a main focus too frequently by using a configurable recency window.
-    """
-    tracker = _load_json(
-        CREATURE_TRACKER_PATH,
-        default={
-            "creatures_used": {},
-            "main_episode_assignments": {},
-            "background_appearances": {},
-        },
+def load_engine_data() -> EngineData:
+    """Load all required data files from /data."""
+    return EngineData(
+        arcs=load_json(DATA_DIR / "arcs.json"),
+        creature_tracker=load_json(DATA_DIR / "creature_tracker.json"),
+        enemy_silhouettes=load_json(DATA_DIR / "enemy_silhouettes.json"),
     )
 
-    main_assignments = tracker.setdefault("main_episode_assignments", {})
-    background_appearances = tracker.setdefault("background_appearances", {})
 
-    # Exclude creatures that have been main characters in the most recent window.
-    recent_threshold = max(1, episode_number - recent_main_window + 1)
-    eligible_main = [
-        creature
-        for creature in available_creatures
-        if not any(ep >= recent_threshold for ep in main_assignments.get(creature, []))
+def validate_world_rules(data: EngineData) -> None:
+    """Validate core constraints defined by the Fireverse world rules.
+
+    Raises:
+        ValueError: If any rule is violated.
+    """
+    silhouettes_by_arc = {
+        entry["arc_id"]: entry for entry in data.enemy_silhouettes.get("silhouettes", [])
+    }
+
+    for arc in data.arcs.get("arcs", []):
+        arc_id = arc["arc_id"]
+
+        # Rule: each arc should map to exactly one hidden enemy silhouette.
+        if arc_id not in silhouettes_by_arc:
+            raise ValueError(f"Arc '{arc_id}' has no silhouette definition.")
+
+        # Rule: each arc should maintain about 15-20 creatures.
+        pool_size = len(arc.get("creature_pool", []))
+        if not 15 <= pool_size <= 20:
+            raise ValueError(
+                f"Arc '{arc_id}' creature_pool size must be 15-20; got {pool_size}."
+            )
+
+        # Rule: each episode contains exactly 3 main creatures.
+        for episode in arc.get("episodes", []):
+            mains = episode.get("main_creatures", [])
+            if len(mains) != 3:
+                raise ValueError(
+                    f"Episode '{episode.get('episode_id')}' must have 3 main creatures."
+                )
+
+
+def build_episode_output(arc: dict[str, Any], episode: dict[str, Any]) -> dict[str, Any]:
+    """Build a starter episode payload matching output requirements.
+
+    Note:
+        This is intentionally template-based placeholder logic for iteration.
+    """
+    main_creatures = episode["main_creatures"]
+
+    scenes = []
+    for i in range(1, 7):
+        start_second = (i - 1) * 10
+        end_second = i * 10
+        scenes.append(
+            {
+                "scene_number": i,
+                "time_window": f"00:{start_second:02d}-00:{end_second:02d}",
+                "focus_creature": main_creatures[(i - 1) % 3],
+                "objective": f"Escalate containment tension in scene {i}.",
+            }
+        )
+
+    safe_image_prompts = [
+        f"Cinematic shot of a {name} creature in a {arc['environment']} containment lab, dramatic lighting, no gore."
+        for name in main_creatures
     ]
 
-    # Fallback when all creatures were used recently.
-    if not eligible_main:
-        eligible_main = list(available_creatures)
+    video_prompts = [
+        f"10-second sequence featuring the {name} creature navigating security corridors in the {arc['environment']} arc setting."
+        for name in main_creatures
+    ]
 
-    # Prefer least-used creature for main assignment to balance exposure.
-    eligible_main.sort(key=lambda c: len(main_assignments.get(c, [])))
-    main_creature = eligible_main[0] if eligible_main else None
-
-    # Background creatures are all others for this lightweight planning stage.
-    background_creatures = [c for c in available_creatures if c != main_creature]
-
-    # Update tracker state for selected creatures.
-    if main_creature:
-        main_assignments.setdefault(main_creature, []).append(episode_number)
-    for creature in background_creatures:
-        background_appearances.setdefault(creature, []).append(episode_number)
-
-    creatures_used = tracker.setdefault("creatures_used", {})
-    for creature in available_creatures:
-        creatures_used[creature] = creatures_used.get(creature, 0) + 1
-
-    _save_json(CREATURE_TRACKER_PATH, tracker)
+    narration_lines = [
+        f"Scene {scene['scene_number']}: The {scene['focus_creature']} creature tests the limits of containment."
+        for scene in scenes
+    ]
 
     return {
-        "main_creature": main_creature,
-        "background_creatures": background_creatures,
-        "tracker": tracker,
-    }
-
-
-def generate_scene_structure(arc: Dict[str, Any], episode_number: int) -> Dict[str, Any]:
-    """Build a reusable scene skeleton from arc metadata and episode position.
-
-    This structure is intentionally abstract: it provides planning slots for
-    opening, conflict escalation, and resolution hooks without creating full prose.
-    """
-    arc_name = arc.get("arc_name", "Unknown Arc")
-    tone = arc.get("tone", "neutral")
-    environment = arc.get("environment_type", "unspecified")
-
-    return {
-        "arc_name": arc_name,
-        "episode_number": episode_number,
-        "environment_type": environment,
-        "tone": tone,
-        "scenes": [
-            {
-                "name": "opening",
-                "goal": f"Establish {environment} atmosphere with {tone} tone.",
-            },
-            {
-                "name": "escalation",
-                "goal": "Increase pressure with creature activity and silhouette hints.",
-            },
-            {
-                "name": "turning_point",
-                "goal": "Reveal strategic clue that changes character expectations.",
-            },
-            {
-                "name": "cooldown",
-                "goal": "End with unresolved tension to carry forward arc momentum.",
-            },
-        ],
-    }
-
-
-def generate_prompts(
-    arc: Dict[str, Any],
-    episode_number: int,
-    creature_plan: Dict[str, Any],
-    scene_structure: Dict[str, Any],
-) -> Dict[str, str]:
-    """Create compact prompt blocks for downstream generation systems.
-
-    The prompts capture arc identity, creature roles, and scene expectations,
-    but stop short of generating a complete episode script.
-    """
-    arc_name = arc.get("arc_name", "Unknown Arc")
-    silhouette = arc.get("enemy_silhouette", "Unknown silhouette")
-
-    system_prompt = (
-        f"Arc: {arc_name}\n"
-        f"Episode: {episode_number}\n"
-        f"Tone: {arc.get('tone', 'neutral')}\n"
-        f"Environment: {arc.get('environment_type', 'unspecified')}\n"
-        f"Enemy silhouette: {silhouette}"
-    )
-
-    user_prompt = (
-        f"Main creature: {creature_plan.get('main_creature')}\n"
-        f"Background creatures: {', '.join(creature_plan.get('background_creatures', [])) or 'None'}\n"
-        f"Scene plan: {json.dumps(scene_structure.get('scenes', []), ensure_ascii=False)}"
-    )
-
-    return {
-        "system_prompt": system_prompt,
-        "user_prompt": user_prompt,
-    }
-
-
-def update_world_memory(
-    arc_name: str,
-    silhouette_name: str,
-    episode_number: int,
-) -> Dict[str, Any]:
-    """Update enemy silhouette memory for continuity and progressive hinting.
-
-    enemy_silhouettes.json stores per-arc visibility and hint statistics so later
-    planning can reference how often an enemy shape has been teased.
-    """
-    memory = _load_json(ENEMY_SILHOUETTES_PATH, default=[])
-
-    entry = next(
-        (
-            item
-            for item in memory
-            if item.get("arc_name") == arc_name
-            and item.get("silhouette_name") == silhouette_name
+        "arc_id": arc["arc_id"],
+        "episode_id": episode["episode_id"],
+        "viral_title": f"{episode['title_seed']} | 3 Creature Lockdown Goes Wrong",
+        "thumbnail_concept": (
+            "Split-frame: three featured creatures in alarm-lit chambers, with a faint"
+            " hidden silhouette reflected in frosted glass."
         ),
-        None,
-    )
+        "scene_plan": scenes,
+        "safe_image_prompts": safe_image_prompts,
+        "video_prompts": video_prompts,
+        "narration_lines": narration_lines,
+    }
 
-    if entry is None:
-        entry = {
-            "arc_name": arc_name,
-            "silhouette_name": silhouette_name,
-            "hint_count": 0,
-            "last_episode_seen": None,
-        }
-        memory.append(entry)
 
-    entry["hint_count"] = int(entry.get("hint_count", 0)) + 1
-    entry["last_episode_seen"] = episode_number
+def main() -> None:
+    """Run starter engine flow and print one sample episode output."""
+    data = load_engine_data()
+    validate_world_rules(data)
 
-    _save_json(ENEMY_SILHOUETTES_PATH, memory)
-    return entry
+    first_arc = data.arcs["arcs"][0]
+    first_episode = first_arc["episodes"][0]
+    result = build_episode_output(first_arc, first_episode)
+
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,10 @@
+# Scene Template
+# Purpose: Standardized block for one 10-second scene.
+
+Scene {scene_number} (00:{start_second:02d}-00:{end_second:02d})
+- Objective: {scene_objective}
+- Visual: {scene_visual}
+- Creature Focus: {scene_creature_focus}
+- Hidden Silhouette Hint: {silhouette_hint}
+- Audio Mood: {audio_mood}
+- Narration: {narration_line}

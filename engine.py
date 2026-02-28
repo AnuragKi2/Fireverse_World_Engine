@@ -1,133 +1,153 @@
-"""Fireverse World Engine core episode generation.
+"""Fireverse_World_Engine starter orchestrator.
 
-Director Control Mode adds a light-weight configuration layer so creators can
-shape tone and escalation without changing core scene flow.
+This script demonstrates the initial architecture for generating episode packages
+for cinematic creature containment stories.
+
+What this file does:
+1. Loads structured world data from /data JSON files.
+2. Validates core world rules (e.g., 3 main creatures, one silhouette per arc).
+3. Builds a starter episode output dictionary with required fields:
+   - Viral title
+   - Thumbnail concept
+   - 6-scene plan (10 seconds each)
+   - Safe image prompts (contains the word "creature")
+   - Video prompts
+   - Narration lines
+4. Prints a readable sample payload for extension into future pipelines.
 """
 
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
-DIRECTOR_SETTINGS_PATH = Path("data/director_settings.json")
-DEFAULT_DIRECTOR_SETTINGS: Dict[str, Any] = {
-    "pacing_style": "cinematic",
-    "hook_intensity": "medium",
-    "mystery_level": "medium",
-    "chaos_scaling": True,
-    "warning_light_style": "default red cinematic",
-    "silhouette_visibility": "medium",
-}
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+TEMPLATE_DIR = BASE_DIR / "templates"
 
 
-def load_director_settings(path: Path = DIRECTOR_SETTINGS_PATH) -> Dict[str, Any]:
-    """Load Director Control Mode settings with sane defaults.
+@dataclass
+class EngineData:
+    """Container for loaded world data files."""
 
-    Creator note:
-    - To tune show feel globally, edit /data/director_settings.json.
-    - Keys here are merged with defaults, so creators can override only what they need.
+    arcs: dict[str, Any]
+    creature_tracker: dict[str, Any]
+    enemy_silhouettes: dict[str, Any]
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    """Load a JSON file into a Python dictionary."""
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_engine_data() -> EngineData:
+    """Load all required data files from /data."""
+    return EngineData(
+        arcs=load_json(DATA_DIR / "arcs.json"),
+        creature_tracker=load_json(DATA_DIR / "creature_tracker.json"),
+        enemy_silhouettes=load_json(DATA_DIR / "enemy_silhouettes.json"),
+    )
+
+
+def validate_world_rules(data: EngineData) -> None:
+    """Validate core constraints defined by the Fireverse world rules.
+
+    Raises:
+        ValueError: If any rule is violated.
     """
+    silhouettes_by_arc = {
+        entry["arc_id"]: entry for entry in data.enemy_silhouettes.get("silhouettes", [])
+    }
 
-    settings = DEFAULT_DIRECTOR_SETTINGS.copy()
+    for arc in data.arcs.get("arcs", []):
+        arc_id = arc["arc_id"]
 
-    if path.exists():
-        with path.open("r", encoding="utf-8") as fh:
-            raw = json.load(fh)
-        if isinstance(raw, dict):
-            settings.update(raw)
+        # Rule: each arc should map to exactly one hidden enemy silhouette.
+        if arc_id not in silhouettes_by_arc:
+            raise ValueError(f"Arc '{arc_id}' has no silhouette definition.")
 
-    return settings
+        # Rule: each arc should maintain about 15-20 creatures.
+        pool_size = len(arc.get("creature_pool", []))
+        if not 15 <= pool_size <= 20:
+            raise ValueError(
+                f"Arc '{arc_id}' creature_pool size must be 15-20; got {pool_size}."
+            )
 
-
-def _pace_descriptor(pacing_style: str) -> str:
-    return {
-        "fast": "rapid cuts and short beats",
-        "cinematic": "sweeping camera movement and dramatic pauses",
-        "slow": "lingering details and deliberate progression",
-    }.get(pacing_style, "balanced pacing")
-
-
-def _mystery_descriptor(mystery_level: str) -> str:
-    return {
-        "low": "most motives are visible from the outset",
-        "medium": "motives are partially obscured",
-        "high": "clues are fragmented and the truth is withheld",
-    }.get(mystery_level, "motives are partially obscured")
-
-
-def _silhouette_hint(silhouette_visibility: str) -> str:
-    return {
-        "subtle": "a barely-there silhouette flickers at the edge of frame",
-        "medium": "a distinct shadowed figure appears briefly in reflective surfaces",
-        "strong": "the enemy silhouette dominates the scene transition before vanishing",
-    }.get(silhouette_visibility, "a distinct shadowed figure appears briefly")
+        # Rule: each episode contains exactly 3 main creatures.
+        for episode in arc.get("episodes", []):
+            mains = episode.get("main_creatures", [])
+            if len(mains) != 3:
+                raise ValueError(
+                    f"Episode '{episode.get('episode_id')}' must have 3 main creatures."
+                )
 
 
-def generate_episode(title: str, scene_count: int = 3) -> Dict[str, Any]:
-    """Generate a Fireverse episode package.
+def build_episode_output(arc: dict[str, Any], episode: dict[str, Any]) -> dict[str, Any]:
+    """Build a starter episode payload matching output requirements.
 
-    Director layer integration:
-    1) Reads Director settings.
-    2) Adapts each scene to pacing/mystery/warning-light style.
-    3) Applies hook intensity to Scene 1.
-    4) Scales chaos across scenes when enabled.
-    5) Tunes enemy hint strength using silhouette visibility.
-
-    Creator note:
-    - Change `scene_count` for longer or shorter episodes.
-    - Change director presets in /data/director_settings.json to retone output.
+    Note:
+        This is intentionally template-based placeholder logic for iteration.
     """
+    main_creatures = episode["main_creatures"]
 
-    director = load_director_settings()
-
-    pace = _pace_descriptor(director["pacing_style"])
-    mystery = _mystery_descriptor(director["mystery_level"])
-    silhouette_hint = _silhouette_hint(director["silhouette_visibility"])
-
-    scenes: List[Dict[str, Any]] = []
-    for index in range(scene_count):
-        scene_no = index + 1
-
-        # Chaos scaling raises tension per scene when enabled.
-        if director["chaos_scaling"]:
-            tension = min(10, 4 + index * 2)
-        else:
-            tension = 5
-
-        opening_hook = ""
-        if scene_no == 1:
-            # Hook intensity directly controls the force of Scene 1's inciting beat.
-            opening_hook = {
-                "medium": "An uneasy signal interrupts routine operations.",
-                "hard": "A catastrophic anomaly tears open the calm in seconds.",
-            }.get(director["hook_intensity"], "An uneasy signal interrupts routine operations.")
-
-        narrative = (
-            f"Scene {scene_no} uses {pace}. "
-            f"The warning lights pulse in {director['warning_light_style']} style. "
-            f"Narrative mystery: {mystery}. "
-            f"Tension level: {tension}/10."
-        )
-
-        if scene_no == 1 and opening_hook:
-            narrative = f"{opening_hook} {narrative}"
-
-        # Enemy hint is always present but weighted by silhouette_visibility strength.
-        enemy_hint = silhouette_hint
-
+    scenes = []
+    for i in range(1, 7):
+        start_second = (i - 1) * 10
+        end_second = i * 10
         scenes.append(
             {
-                "scene_number": scene_no,
-                "narrative": narrative,
-                "enemy_hint": enemy_hint,
-                "tension": tension,
+                "scene_number": i,
+                "time_window": f"00:{start_second:02d}-00:{end_second:02d}",
+                "focus_creature": main_creatures[(i - 1) % 3],
+                "objective": f"Escalate containment tension in scene {i}.",
             }
         )
 
+    safe_image_prompts = [
+        f"Cinematic shot of a {name} creature in a {arc['environment']} containment lab, dramatic lighting, no gore."
+        for name in main_creatures
+    ]
+
+    video_prompts = [
+        f"10-second sequence featuring the {name} creature navigating security corridors in the {arc['environment']} arc setting."
+        for name in main_creatures
+    ]
+
+    narration_lines = [
+        f"Scene {scene['scene_number']}: The {scene['focus_creature']} creature tests the limits of containment."
+        for scene in scenes
+    ]
+
     return {
-        "title": title,
-        "director_settings": director,
-        "scenes": scenes,
+        "arc_id": arc["arc_id"],
+        "episode_id": episode["episode_id"],
+        "viral_title": f"{episode['title_seed']} | 3 Creature Lockdown Goes Wrong",
+        "thumbnail_concept": (
+            "Split-frame: three featured creatures in alarm-lit chambers, with a faint"
+            " hidden silhouette reflected in frosted glass."
+        ),
+        "scene_plan": scenes,
+        "safe_image_prompts": safe_image_prompts,
+        "video_prompts": video_prompts,
+        "narration_lines": narration_lines,
     }
+
+
+def main() -> None:
+    """Run starter engine flow and print one sample episode output."""
+    data = load_engine_data()
+    validate_world_rules(data)
+
+    first_arc = data.arcs["arcs"][0]
+    first_episode = first_arc["episodes"][0]
+    result = build_episode_output(first_arc, first_episode)
+
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
